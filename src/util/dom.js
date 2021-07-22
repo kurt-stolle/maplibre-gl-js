@@ -110,7 +110,7 @@ DOM.mousePos = function (el: HTMLElement, e: MouseEvent | window.TouchEvent | To
 
     return new Point(
         (e.clientX - rect.left) * scaleX - el.clientLeft,
-        (e.clientY - rect.top) * scaleY - el.clientTop
+        (e.clientY - rect.top) * scaleY - el.clientTop,
     );
 };
 
@@ -120,11 +120,10 @@ DOM.touchPos = function (el: HTMLElement, touches: TouchList) {
         scaleX = el.offsetWidth === rect.width ? 1 : el.offsetWidth / rect.width,
         scaleY = el.offsetHeight === rect.height ? 1 : el.offsetHeight / rect.height;
 
-
     for (let i = 0; i < touches.length; i++) {
         points.push(new Point(
             (touches[i].clientX - rect.left) * scaleX - el.clientLeft,
-            (touches[i].clientY - rect.top) * scaleY - el.clientTop
+            (touches[i].clientY - rect.top) * scaleY - el.clientTop,
         ));
     }
     return points;
