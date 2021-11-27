@@ -101,6 +101,7 @@ export type MapOptions = {
   localIdeographFontFamily?: string;
   style: StyleSpecification | string;
   pitchWithRotate?: boolean;
+  pixelRatio?: number;
 };
 
 // See article here: https://medium.com/terria/typescript-transforming-optional-properties-to-required-properties-that-may-be-undefined-7482cb4e1585
@@ -159,7 +160,9 @@ const defaultOptions = {
     localIdeographFontFamily: 'sans-serif',
     transformRequest: null,
     fadeDuration: 300,
-    crossSourceCollisions: true
+    crossSourceCollisions: true,
+
+    pixelRatio: devicePixelRatio,
 } as CompleteMapOptions;
 
 /**
@@ -315,6 +318,7 @@ class Map extends Camera {
     _locale: any;
     _removed: boolean;
     _clickTolerance: number;
+    _pixelRatio: number;
 
     /**
      * The map's {@link ScrollZoomHandler}, which implements zooming in and out with a scroll wheel or trackpad.
@@ -406,6 +410,7 @@ class Map extends Camera {
         this._mapId = uniqueId();
         this._locale = extend({}, defaultLocale, options.locale);
         this._clickTolerance = options.clickTolerance;
+        this._pixelRatio = options.pixelRatio;
 
         this._requestManager = new RequestManager(options.transformRequest);
 
@@ -597,13 +602,11 @@ class Map extends Camera {
      * if (mapDiv.style.visibility === true) map.resize();
      */
     resize(eventData?: any) {
-        const dimensions = this._containerDimensions();
-        const width = dimensions[0];
-        const height = dimensions[1];
+        const [width, height] = this._containerDimensions();
 
         this._resizeCanvas(width, height);
         this.transform.resize(width, height);
-        this.painter.resize(width, height);
+        this.painter.resize(width, height, this._pixelRatio);
 
         const fireMoving = !this._moving;
         if (fireMoving) {
@@ -2327,14 +2330,11 @@ class Map extends Camera {
         return this._canvas;
     }
 
-    _containerDimensions() {
-        let width = 0;
-        let height = 0;
+    _containerDimensions(): [number, number] {
+        const width = this._container?.clientWidth || NaN;
+        const height = this._container?.clientHeight || NaN;
 
-        if (this._container) {
-            width = this._container.clientWidth || 400;
-            height = this._container.clientHeight || 300;
-        }
+        if (!Number.isFinite(width + height)) throw new Error(`Non-finite container dimensions ${width} x ${height}.`);
 
         return [width, height];
     }
@@ -2355,8 +2355,7 @@ class Map extends Camera {
         this._canvas.setAttribute('aria-label', 'Map');
         this._canvas.setAttribute('role', 'region');
 
-        const dimensions = this._containerDimensions();
-        this._resizeCanvas(dimensions[0], dimensions[1]);
+        this._resizeCanvas(...this._containerDimensions());
 
         const controlContainer = this._controlContainer = DOM.create('div', 'maplibregl-control-container mapboxgl-control-container', container);
         const positions = this._controlPositions = {};
@@ -2368,11 +2367,9 @@ class Map extends Camera {
     }
 
     _resizeCanvas(width: number, height: number) {
-        const pixelRatio = devicePixelRatio || 1;
-
         // Request the required canvas size taking the pixelratio into account.
-        this._canvas.width = pixelRatio * width;
-        this._canvas.height = pixelRatio * height;
+        this._canvas.width = this._pixelRatio * width;
+        this._canvas.height = this._pixelRatio * height;
 
         // Maintain the same canvas size, potentially downscaling it for HiDPI displays
         this._canvas.style.width = `${width}px`;
@@ -2810,6 +2807,10 @@ class Map extends Camera {
     _setCacheLimits(limit: number, checkThreshold: number) {
         setCacheLimits(limit, checkThreshold);
     }
+
+    // set pixel ratio
+    get pixelRatio(): number { return this._pixelRatio; }
+    set pixelRatio(value: number) { this._pixelRatio = value; this.resize(); }
 }
 
 export default Map;
