@@ -88,22 +88,12 @@ export default class DOM {
 
     public static mousePos(el: HTMLElement, e: MouseEvent | Touch) {
         const rect = el.getBoundingClientRect();
-        return new Point(
-            e.clientX - rect.left - el.clientLeft,
-            e.clientY - rect.top - el.clientTop
-        );
+        return scaledMousePoint(el, e, rect);
     }
 
     public static touchPos(el: HTMLElement, touches: TouchList) {
         const rect = el.getBoundingClientRect();
-        const points: Point[] = [];
-        for (let i = 0; i < touches.length; i++) {
-            points.push(new Point(
-                touches[i].clientX - rect.left - el.clientLeft,
-                touches[i].clientY - rect.top - el.clientTop
-            ));
-        }
-        return points;
+        return Array.from(touches).map((e)=>scaledMousePoint(el, e, rect));
     }
 
     public static mouseButton(e: MouseEvent) {
@@ -116,4 +106,14 @@ export default class DOM {
             node.parentNode.removeChild(node);
         }
     }
+}
+
+function scaledMousePoint(el: HTMLElement, e: MouseEvent | Touch, rect: ClientRect): Point {
+  const scaleX = el.offsetWidth === rect.width ? 1 : el.offsetWidth / rect.width;
+  const scaleY = el.offsetHeight === rect.height ? 1 : el.offsetHeight / rect.height;
+
+  return new Point(
+    (e.clientX - rect.left) * scaleX,
+    (e.clientY - rect.top) * scaleY,
+  );
 }
